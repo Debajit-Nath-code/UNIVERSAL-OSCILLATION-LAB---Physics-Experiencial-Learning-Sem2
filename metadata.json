@@ -1,0 +1,5 @@
+{
+  "name": "Universal Oscillation Lab",
+  "description": "A university-level interactive physics simulation for oscillations, featuring mass-spring systems, pendulums, resonance, and wave formation.",
+  "requestFramePermissions": []
+}

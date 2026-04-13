@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cosmic-bg: #7d72b5;
+  --color-cosmic-card: rgba(125, 114, 181, 0.8);
+  --color-cosmic-accent: #c4b5fd;
+  --color-cosmic-secondary: #9d7af2;
+  --color-cosmic-muted: #5d548a;
+  
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2rem;
+  --radius-3xl: 3rem;
+}
+
+@layer base {
+  body {
+    @apply bg-cosmic-bg text-white font-sans selection:bg-cosmic-accent selection:text-cosmic-muted;
+    background: linear-gradient(135deg, #7d72b5 0%, #5d548a 100%);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+}
+
+@utility shadow-neu-flat {
+  box-shadow: 8px 8px 16px rgba(0, 0, 0, 0.15), 
+              -8px -8px 16px rgba(255, 255, 255, 0.1);
+}
+
+@utility shadow-neu-inset {
+  box-shadow: inset 6px 6px 12px rgba(0, 0, 0, 0.15), 
+              inset -6px -6px 12px rgba(255, 255, 255, 0.1);
+}
+
+@utility shadow-neu-button {
+  box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.15), 
+              -4px -4px 8px rgba(255, 255, 255, 0.1);
+}
+
+@utility shadow-neu-button-pressed {
+  box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.15), 
+              inset -4px -4px 8px rgba(255, 255, 255, 0.1);
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/10 backdrop-blur-xl border border-white/20;
+  }
+
+  .cosmic-slider {
+    @apply appearance-none h-3 rounded-full bg-cosmic-muted shadow-neu-inset outline-none;
+  }
+
+  .cosmic-slider::-webkit-slider-thumb {
+    @apply appearance-none w-6 h-6 rounded-full bg-white shadow-lg cursor-pointer transition-all;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+  }
+
+  .cosmic-slider::-webkit-slider-thumb:hover {
+    @apply scale-110;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-white/20 rounded-full hover:bg-white/30 transition-colors;
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.text-gradient {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-white to-cosmic-accent;
+}
