@@ -4,6 +4,8 @@
  */
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import 'katex/dist/katex.min.css';
+import { BlockMath, InlineMath } from 'react-katex';
 import { 
   Search, 
   Home, 
@@ -24,7 +26,8 @@ import {
   Info,
   Battery,
   Trophy,
-  Globe
+  Globe,
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -94,9 +97,9 @@ const NeumorphicButton = ({ children, className = "", onClick = () => {} }: { ch
   );
 };
 
-const NavButton = ({ icon: Icon, active = false }: { icon: any, active?: boolean }) => {
+const NavButton = ({ icon: Icon, active = false, onClick }: { icon: any, active?: boolean, onClick?: () => void }) => {
   return (
-    <button className={`
+    <button onClick={onClick} className={`
       w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300
       ${active ? 'shadow-neu-button-pressed bg-white/10' : 'shadow-neu-button hover:bg-white/5'}
     `}>
@@ -427,6 +430,11 @@ function RealTimeGraph({ type, module, isPaused, params }: { type: string, modul
           <Tooltip 
             contentStyle={{ backgroundColor: 'rgba(125, 114, 181, 0.9)', border: 'none', borderRadius: '12px', fontSize: '10px', color: 'white' }}
             itemStyle={{ color: 'white' }}
+            formatter={(value: number, name: string) => {
+              if (name === 'amplitude') return [`${value.toFixed(3)} m`, 'Amplitude'];
+              return [value, name];
+            }}
+            labelFormatter={(label: number) => `Frequency: ${label.toFixed(2)} rad/s`}
           />
           <Area type="monotone" dataKey="amplitude" stroke="#c4b5fd" fill="#c4b5fd33" strokeWidth={2} isAnimationActive={false} />
           {/* Highlight current frequency */}
@@ -454,6 +462,20 @@ function RealTimeGraph({ type, module, isPaused, params }: { type: string, modul
           contentStyle={{ backgroundColor: 'rgba(125, 114, 181, 0.9)', border: 'none', borderRadius: '12px', fontSize: '10px', color: 'white' }}
           itemStyle={{ color: 'white' }}
           labelStyle={{ display: 'none' }}
+          formatter={(value: number, name: string) => {
+            if (type === 'energy') {
+              if (name === 'ke') return [`${value.toFixed(2)} J`, 'Kinetic Energy'];
+              if (name === 'pe') return [`${value.toFixed(2)} J`, 'Potential Energy'];
+              if (name === 'total') return [`${value.toFixed(2)} J`, 'Total Energy'];
+            } else if (type === 'velocity') {
+              const unit = module === 'pendulum' ? 'rad/s' : 'm/s';
+              return [`${value.toFixed(2)} ${unit}`, 'Velocity'];
+            } else {
+              const unit = module === 'pendulum' ? 'rad' : 'm';
+              return [`${value.toFixed(2)} ${unit}`, 'Position'];
+            }
+            return [value, name];
+          }}
         />
         {type === 'energy' ? (
           <>
@@ -530,30 +552,6 @@ function EnergyDisplay({ module, isPaused, params, horizontal = false }: { modul
           </div>
         </div>
       ))}
-    </div>
-  );
-}
-
-function TheoryDisplay({ module }: { module: ModuleType }) {
-  const currentModule = MODULES.find(m => m.id === module)!;
-  return (
-    <div className="space-y-4 py-2 h-full overflow-y-auto custom-scrollbar">
-      <div className="flex items-center gap-2 text-white/80">
-        <Info size={14} className="text-cosmic-accent" />
-        <h4 className="font-bold text-xs uppercase tracking-wider">Core Concepts</h4>
-      </div>
-      <p className="text-[11px] text-white/60 leading-relaxed">{currentModule.theory}</p>
-      <div className="bg-black/20 p-3 rounded-xl font-mono text-[10px] text-center text-cosmic-accent shadow-neu-inset">
-        {currentModule.formula}
-      </div>
-      <ul className="space-y-2">
-        {currentModule.insights.map((insight, i) => (
-          <li key={i} className="flex items-start gap-2 text-[10px] text-white/40">
-            <div className="w-1 h-1 rounded-full bg-cosmic-accent/50 mt-1.5" />
-            {insight}
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }
@@ -706,6 +704,8 @@ export default function App() {
     wavePhase: 0
   });
   const [showTheory, setShowTheory] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showUser, setShowUser] = useState(false);
   const [activeTheoryTab, setActiveTheoryTab] = useState<'theory' | 'real-world'>('theory');
   const [activeRealWorldTab, setActiveRealWorldTab] = useState<string>('Atoms');
   const [showQuiz, setShowQuiz] = useState(false);
@@ -715,6 +715,9 @@ export default function App() {
   const audioCtxRef = useRef<AudioContext | null>(null);
   const oscillatorRef = useRef<OscillatorNode | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
+  
+  const topRef = useRef<HTMLDivElement>(null);
+  const modulesRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (soundEnabled && !isPaused) {
@@ -760,7 +763,7 @@ export default function App() {
     window.dispatchEvent(new CustomEvent('reset-sim'));
   };
   return (
-    <div className="min-h-screen bg-cosmic-bg text-white font-sans selection:bg-cosmic-accent/30">
+    <div ref={topRef} className="min-h-screen bg-cosmic-bg text-white font-sans selection:bg-cosmic-accent/30">
       <AnimatePresence>
         {isLoading && <SplashScreen onComplete={() => setIsLoading(false)} />}
       </AnimatePresence>
@@ -813,32 +816,6 @@ export default function App() {
                 />
                 
                 <SimulationModule type={activeModule} isPaused={isPaused} params={params} />
-
-                <AnimatePresence>
-                  {isPaused && (
-                    <motion.div 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-[1px] z-20 cursor-pointer group"
-                      onClick={() => setIsPaused(false)}
-                    >
-                      <motion.div
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0.8, opacity: 0 }}
-                        className="w-24 h-24 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white shadow-neu-flat group-hover:scale-110 group-hover:bg-white/10 transition-all duration-300"
-                      >
-                        <div className="ml-2">
-                          <Play size={48} fill="currentColor" className="text-cosmic-accent" />
-                        </div>
-                      </motion.div>
-                      <div className="absolute bottom-12 text-[10px] font-bold tracking-[0.4em] text-white/40 uppercase animate-pulse">
-                        Click to Start Simulation
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </div>
             </motion.div>
 
@@ -1026,8 +1003,8 @@ export default function App() {
         </div>
       </div>
 
-      {/* Graphs & Theory Section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      {/* Graphs Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="glass-card rounded-[2.5rem] p-6 shadow-neu-flat h-64">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-[10px] font-bold text-white/40 uppercase tracking-widest">
@@ -1059,29 +1036,20 @@ export default function App() {
             )}
           </div>
         </div>
-        <div className="glass-card rounded-[2.5rem] p-6 shadow-neu-flat h-64">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Theory & Insights</h3>
-            <BookOpen size={14} className="text-white/30" />
-          </div>
-          <div className="h-40">
-            <TheoryDisplay module={activeModule} />
-          </div>
-        </div>
       </div>
 
       {/* Floating Navigation */}
       <div className="flex justify-center">
         <div className="glass-card px-4 py-3 rounded-3xl shadow-neu-flat flex gap-6">
-          <NavButton icon={Home} active />
-          <NavButton icon={Grid} />
-          <NavButton icon={Settings} />
-          <NavButton icon={User} />
+          <NavButton icon={Home} onClick={() => topRef.current?.scrollIntoView({ behavior: 'smooth' })} />
+          <NavButton icon={Grid} onClick={() => modulesRef.current?.scrollIntoView({ behavior: 'smooth' })} />
+          <NavButton icon={Settings} onClick={() => setShowSettings(true)} />
+          <NavButton icon={User} onClick={() => setShowUser(true)} />
         </div>
       </div>
 
       {/* Module Selector Section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div ref={modulesRef} className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {MODULES.map((module) => (
           <motion.div 
             key={module.id}
@@ -1248,9 +1216,14 @@ export default function App() {
             </div>
             <div className="relative h-64 rounded-3xl overflow-hidden shadow-neu-inset">
               <img 
-                src={`https://picsum.photos/seed/${activeRealWorldTab.toLowerCase()}/800/600`} 
+                src={`https://picsum.photos/seed/${
+                  activeRealWorldTab === 'Atoms' ? 'molecule' :
+                  activeRealWorldTab === 'Bridges' ? 'suspension-bridge' :
+                  activeRealWorldTab === 'Clocks' ? 'grandfather-clock' :
+                  'guitar-strings'
+                }/800/600`} 
                 alt={activeRealWorldTab} 
-                className="absolute inset-0 w-full h-full object-cover opacity-60"
+                className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-luminosity"
                 referrerPolicy="no-referrer"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-cosmic-bg/80 to-transparent" />
@@ -1266,6 +1239,214 @@ export default function App() {
           Created by Universal Lab Team
         </p>
       </footer>
+
+      {/* Theory & Insights Modal */}
+      <AnimatePresence>
+        {showTheory && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowTheory(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="glass-card rounded-[2.5rem] p-8 max-w-2xl w-full shadow-neu-flat relative overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button 
+                onClick={() => setShowTheory(false)}
+                className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all"
+              >
+                <X size={16} />
+              </button>
+              
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center shadow-neu-button">
+                  <BookOpen size={20} className="text-cosmic-accent" />
+                </div>
+                <h2 className="text-2xl font-black uppercase tracking-tight">Theory & Insights</h2>
+              </div>
+              
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-cosmic-accent">Core Concepts</h4>
+                  <p className="text-sm text-white/80 leading-relaxed">{MODULES.find(m => m.id === activeModule)?.theory}</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-cosmic-accent">Governing Equation</h4>
+                  <div className="bg-black/30 p-4 rounded-2xl text-sm text-center text-white shadow-neu-inset overflow-x-auto">
+                    <BlockMath math={MODULES.find(m => m.id === activeModule)?.formula || ''} />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-cosmic-accent">Key Insights</h4>
+                  <ul className="space-y-2">
+                    {MODULES.find(m => m.id === activeModule)?.insights.map((insight, idx) => {
+                      return (
+                        <li key={idx} className="flex items-start gap-2 text-sm text-white/70">
+                          <div className="w-1.5 h-1.5 rounded-full bg-cosmic-accent mt-1.5 shrink-0" />
+                          <span>
+                            {insight.includes('\\') ? (
+                              <InlineMath math={insight} />
+                            ) : (
+                              insight
+                            )}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Settings Modal */}
+      <AnimatePresence>
+        {showSettings && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowSettings(false)}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="glass-card rounded-[2.5rem] p-8 max-w-md w-full shadow-neu-flat relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button 
+                onClick={() => setShowSettings(false)}
+                className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+              >
+                <X size={20} />
+              </button>
+              
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center shadow-neu-button">
+                  <Settings size={20} className="text-cosmic-accent" />
+                </div>
+                <h2 className="text-2xl font-black uppercase tracking-tight">Settings</h2>
+              </div>
+              
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-cosmic-accent">Preferences</h4>
+                  
+                  <div className="flex items-center justify-between p-4 rounded-2xl bg-black/20">
+                    <div className="flex items-center gap-3">
+                      <Zap size={18} className="text-white/70" />
+                      <span className="text-sm font-medium">Sound Effects</span>
+                    </div>
+                    <button 
+                      onClick={() => setSoundEnabled(!soundEnabled)}
+                      className={`w-12 h-6 rounded-full transition-colors relative ${soundEnabled ? 'bg-cosmic-accent' : 'bg-white/20'}`}
+                    >
+                      <motion.div 
+                        animate={{ x: soundEnabled ? 24 : 2 }}
+                        className="w-5 h-5 bg-white rounded-full absolute top-0.5"
+                      />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 rounded-2xl bg-black/20">
+                    <div className="flex items-center gap-3">
+                      <Grid size={18} className="text-white/70" />
+                      <span className="text-sm font-medium">Show Grid</span>
+                    </div>
+                    <button 
+                      onClick={() => setShowGrid(!showGrid)}
+                      className={`w-12 h-6 rounded-full transition-colors relative ${showGrid ? 'bg-cosmic-accent' : 'bg-white/20'}`}
+                    >
+                      <motion.div 
+                        animate={{ x: showGrid ? 24 : 2 }}
+                        className="w-5 h-5 bg-white rounded-full absolute top-0.5"
+                      />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 rounded-2xl bg-black/20">
+                    <div className="flex items-center gap-3">
+                      <ArrowRight size={18} className="text-white/70" />
+                      <span className="text-sm font-medium">Show Vectors</span>
+                    </div>
+                    <button 
+                      onClick={() => setShowVectors(!showVectors)}
+                      className={`w-12 h-6 rounded-full transition-colors relative ${showVectors ? 'bg-cosmic-accent' : 'bg-white/20'}`}
+                    >
+                      <motion.div 
+                        animate={{ x: showVectors ? 24 : 2 }}
+                        className="w-5 h-5 bg-white rounded-full absolute top-0.5"
+                      />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* User Modal */}
+      <AnimatePresence>
+        {showUser && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowUser(false)}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="glass-card rounded-[2.5rem] p-8 max-w-md w-full shadow-neu-flat relative text-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button 
+                onClick={() => setShowUser(false)}
+                className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+              >
+                <X size={20} />
+              </button>
+              
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-cosmic-accent to-purple-600 mx-auto mb-6 flex items-center justify-center shadow-neu-button">
+                <User size={40} className="text-white" />
+              </div>
+              
+              <h2 className="text-2xl font-black uppercase tracking-tight mb-2">Guest User</h2>
+              <p className="text-sm text-white/50 mb-8">Physics Enthusiast</p>
+              
+              <div className="grid grid-cols-2 gap-4 mb-8">
+                <div className="bg-black/20 p-4 rounded-2xl">
+                  <div className="text-2xl font-bold text-cosmic-accent mb-1">5</div>
+                  <div className="text-[10px] uppercase tracking-wider text-white/50">Modules Explored</div>
+                </div>
+                <div className="bg-black/20 p-4 rounded-2xl">
+                  <div className="text-2xl font-bold text-cosmic-accent mb-1">0</div>
+                  <div className="text-[10px] uppercase tracking-wider text-white/50">Quizzes Passed</div>
+                </div>
+              </div>
+
+              <NeumorphicButton className="w-full bg-white/10 text-xs">
+                Sign In to Save Progress
+              </NeumorphicButton>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   </div>
 );

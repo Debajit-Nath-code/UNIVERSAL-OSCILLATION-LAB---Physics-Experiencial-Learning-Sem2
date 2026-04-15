@@ -21,7 +21,7 @@ export const MODULES: ModuleInfo[] = [
     icon: 'Activity',
     description: 'Explore Simple Harmonic Motion with a mass attached to a spring.',
     theory: 'A mass-spring system is a classic example of SHM. When the mass is displaced from equilibrium, the spring exerts a restoring force proportional to the displacement (Hooke\'s Law).',
-    formula: 'm \frac{d^2x}{dt^2} + b \frac{dx}{dt} + kx = 0',
+    formula: 'm \\frac{d^2x}{dt^2} + b \\frac{dx}{dt} + kx = 0',
     insights: [
       'Period depends on mass and spring constant.',
       'Damping reduces amplitude over time.',
@@ -38,7 +38,7 @@ export const MODULES: ModuleInfo[] = [
     icon: 'Timer',
     description: 'Compare small-angle approximations with real pendulum motion.',
     theory: 'A simple pendulum consists of a mass hanging from a pivot. For small angles, it approximates SHM, but for large angles, the period depends on the initial displacement.',
-    formula: 'T \approx 2\pi \sqrt{\frac{L}{g}}',
+    formula: 'T \\approx 2\\pi \\sqrt{\\frac{L}{g}}',
     insights: [
       'Period is independent of mass.',
       'Period increases slightly with larger initial angles.',
@@ -55,9 +55,9 @@ export const MODULES: ModuleInfo[] = [
     icon: 'Zap',
     description: 'Observe how external driving forces affect an oscillator.',
     theory: 'When an external periodic force is applied to an oscillator, the amplitude reaches a maximum when the driving frequency matches the natural frequency of the system.',
-    formula: 'F = F_0 \sin(\omega t)',
+    formula: 'F = F_0 \\sin(\\omega t)',
     insights: [
-      'Resonance occurs at \omega_d = \omega_0.',
+      '\\text{Resonance occurs at } \\omega_d = \\omega_0.',
       'Phase shift changes rapidly near resonance.',
       'Damping limits the maximum amplitude at resonance.'
     ],
@@ -72,7 +72,7 @@ export const MODULES: ModuleInfo[] = [
     icon: 'Battery',
     description: 'Real-time breakdown of kinetic and potential energy.',
     theory: 'In an ideal SHM system, total energy is conserved. It continuously transforms between kinetic energy (maximum at equilibrium) and potential energy (maximum at amplitude).',
-    formula: 'E_{total} = \frac{1}{2}mv^2 + \frac{1}{2}kx^2',
+    formula: 'E_{total} = \\frac{1}{2}mv^2 + \\frac{1}{2}kx^2',
     insights: [
       'Total energy is constant (without damping).',
       'KE is max when displacement is zero.',
@@ -85,7 +85,7 @@ export const MODULES: ModuleInfo[] = [
     icon: 'Waves',
     description: 'See how a chain of oscillators creates a traveling wave.',
     theory: 'Waves are formed when oscillations propagate through a medium. Each point in the medium oscillates around its equilibrium position, passing energy to its neighbor.',
-    formula: 'y(x,t) = A \sin(kx - \omega t)',
+    formula: 'y(x,t) = A \\sin(kx - \\omega t)',
     insights: [
       'Frequency is determined by the source.',
       'Wavelength depends on frequency and wave speed.',
